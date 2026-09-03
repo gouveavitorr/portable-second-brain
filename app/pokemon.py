@@ -98,8 +98,28 @@ def aplicar_xp(prog, ganho, pool, resolver_cadeia, rng):
 
 _BASE = "https://pokeapi.co/api/v2"
 
+# Onde a tela pede os sprites já baixados (servidos por app.main de `static/pokemon/`).
+URL_SPRITES = "/static/pokemon"
+
 # Ramos escolhidos pelo usuário quando a cadeia se divide.
 RAMOS_PREFERIDOS = {"gloom": "vileplume", "eevee": "sylveon"}
+
+
+def especies_da_arvore(no) -> list:
+    """Todos os slugs de espécie numa árvore de evolução, em TODOS os ramos.
+
+    É o que o build precisa baixar: o ramo (eevee → qual eeveelution) é sorteado
+    em runtime, então o sprite de cada possibilidade tem que existir no disco.
+    """
+    saida = []
+    pilha = [no] if no else []
+    while pilha:
+        atual = pilha.pop()
+        if not atual:
+            continue
+        saida.append(atual["species"]["name"])
+        pilha.extend(atual.get("evolves_to") or [])
+    return saida
 
 
 def _slug_url(url: str) -> str:
@@ -114,9 +134,15 @@ def _fetch_httpx(url: str) -> dict:
 
 
 class ClientePokeAPI:
-    def __init__(self, cache_dir, fetch=None):
+    def __init__(self, cache_dir, fetch=None, sprites_dir=None, cadeias=None):
         self.cache_dir = Path(cache_dir)
         self._fetch = fetch or _fetch_httpx
+        # Modo offline (runtime empacotado): com os sprites já baixados em
+        # `sprites_dir` e as cadeias pré-resolvidas em `cadeias`, nada aqui toca a
+        # rede. Sem os dois, cai no fallback que fala com a PokeAPI — é o caminho
+        # do build (scripts/baixar_sprites.py) e dos testes.
+        self.sprites_dir = Path(sprites_dir) if sprites_dir else None
+        self._cadeias = cadeias or {}
 
     def _get(self, url: str) -> dict:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -128,19 +154,35 @@ class ClientePokeAPI:
         return dados
 
     def sprite(self, especie: str):
+        slug = (especie or "").strip().lower()
+        # offline: se o PNG já está versionado em static/pokemon/, serve local
+        if self.sprites_dir is not None and (self.sprites_dir / f"{slug}.png").exists():
+            return f"{URL_SPRITES}/{slug}.png"
         dados = self._get(f"{_BASE}/pokemon/{especie}")
         return dados.get("sprites", {}).get("front_default")
 
-    def cadeia_evolucao(self, especie: str, rng):
+    def arvore_evolucao(self, especie: str):
+        """A árvore de evolução crua (com TODOS os ramos), do jeito que a PokeAPI
+        devolve em `chain`. É o que o build versiona; `cadeia_evolucao` achata um
+        ramo dela. Devolve None se a espécie não tem cadeia."""
         p = self._get(f"{_BASE}/pokemon/{especie}")
         species_url = p.get("species", {}).get("url")
         if not species_url:
-            return [especie]
+            return None
         sp = self._get(species_url)
         chain_url = sp.get("evolution_chain", {}).get("url")
         if not chain_url:
+            return None
+        return self._get(chain_url).get("chain")
+
+    def cadeia_evolucao(self, especie: str, rng):
+        # offline: cadeia pré-resolvida no build, achatada aqui (o sorteio de ramo
+        # continua valendo, com o rng do runtime). Sem ela, resolve pela rede.
+        arvore = self._cadeias.get((especie or "").strip().lower())
+        if arvore is None:
+            arvore = self.arvore_evolucao(especie)
+        if not arvore:
             return [especie]
-        arvore = self._get(chain_url).get("chain")
         return self._achatar_cadeia(arvore, rng)
 
     @staticmethod

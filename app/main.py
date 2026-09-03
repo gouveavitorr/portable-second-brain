@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import sys
@@ -9,7 +10,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.storage import Vault
+from app.storage import preparar_vault
 from app.pokemon import ClientePokeAPI
 from app.servico import Servico
 from app.tasks import Tarefa
@@ -36,11 +37,13 @@ def _encerrar_em_breve(delay: float = 0.3) -> None:
 def _disparar_reiniciar() -> None:
     """Sobe um ajudante solto que espera este servidor cair e sobe outro no lugar.
 
-    Sem janela (CREATE_NO_WINDOW). O handoff da porta mora no `abrir.py --reiniciar`.
+    Sem janela (CREATE_NO_WINDOW). O handoff da porta mora no `abrir.py --reiniciar`;
+    `comando_base()` resolve chamar o próprio exe (empacotado) ou o python + abrir.py.
     """
+    from abrir import comando_base
     sem_janela = getattr(subprocess, "CREATE_NO_WINDOW", 0)
     subprocess.Popen(
-        [sys.executable, str(_RAIZ / "abrir.py"), "--reiniciar"],
+        comando_base() + ["--reiniciar"],
         cwd=str(_RAIZ),
         creationflags=sem_janela,
     )
@@ -392,13 +395,24 @@ def criar_app(servico: Servico) -> FastAPI:
     return app
 
 
+def _cliente_pokemon(cache_dir) -> ClientePokeAPI:
+    """Cliente em modo offline: sprites e cadeias vêm de `static/pokemon/`
+    (versionados pelo `scripts/baixar_sprites.py`). Se ainda não foram gerados,
+    o cliente cai no fallback de rede — o app continua funcionando com internet."""
+    sprites_dir = _STATIC / "pokemon"
+    cadeias = {}
+    arq = sprites_dir / "cadeias.json"
+    if arq.exists():
+        cadeias = json.loads(arq.read_text(encoding="utf-8"))
+    return ClientePokeAPI(cache_dir, sprites_dir=sprites_dir, cadeias=cadeias)
+
+
 def _app_default() -> FastAPI:
-    vault = Vault(Path("second_brain"))
-    vault.garantir()
-    cliente = ClientePokeAPI(vault.cache_dir)
-    # Portátil: sem calendário externo. O app roda sem consciência de tempo
-    # (Servico com calendario=None); a tela "Agora" só perde a janela livre.
-    return criar_app(Servico(vault, cliente))
+    # Vault num lugar fixo (Documentos/SecondBrain quando empacotado), semeado na
+    # primeira execução. Sem calendário externo: o app roda sem consciência de
+    # tempo (Servico com calendario=None); a tela "Agora" só perde a janela livre.
+    vault = preparar_vault()
+    return criar_app(Servico(vault, _cliente_pokemon(vault.cache_dir)))
 
 
 app = _app_default()

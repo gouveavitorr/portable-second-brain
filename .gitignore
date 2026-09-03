@@ -15,8 +15,9 @@ second_brain/estado.md
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
 
-# Log do servidor (uvicorn roda sem janela; o log vai pra cá pra "não subiu" ser debugável)
+# Log e porta do servidor (uvicorn roda sem janela; o log vai pra cá pra "não subiu" ser debugável)
 .servidor.log
+.servidor.port
 
 # Ambiente Python
 __pycache__/
