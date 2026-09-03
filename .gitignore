@@ -1,0 +1,34 @@
+# Cache local da PokeAPI (regenerável)
+.cache/
+
+# Estado de progresso gerido pelo app (save do usuário; começa vazio)
+second_brain/progresso.json
+
+# Marcador de "já passei pela introdução" (por máquina; a skill bem-vindo cria)
+second_brain/.primeira-vez
+
+# Retrato gerado por scripts/estado.py: é derivado, muda a cada sessão e sujaria
+# o working tree à toa. Recria com `python -m scripts.estado --write`.
+second_brain/estado.md
+
+# Arquivos de workspace do Obsidian (específicos da máquina)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Log do servidor (uvicorn roda sem janela; o log vai pra cá pra "não subiu" ser debugável)
+.servidor.log
+
+# Ambiente Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Segredos, se um dia forem usados: nunca versionar.
+.env
+credentials.json
+token.json
+client_secret*.json
+**/credentials.json
+**/token.json
+**/client_secret*.json

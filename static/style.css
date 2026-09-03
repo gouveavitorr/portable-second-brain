@@ -1,0 +1,1024 @@
+/* Fredoka (SIL OFL), subset latin, servida localmente: o app funciona offline
+   e não pinga o Google quando você usa. */
+@font-face {
+  font-family: "Fredoka";
+  src: url("/static/fontes/fredoka-latin-var.woff2") format("woff2");
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+
+  --fundo: #12141A;
+  --superficie: #1B1E26;
+  --superficie-alta: #232833;
+  --borda: #2A2F3A;
+  --texto: #E8EAF0;
+  --fraco: #9AA1B0;
+
+  /* Cor = custo. Tipos do Pokémon, um por nível de energia. */
+  --leve: #7AC74C;      /* grama */
+  --media: #F7D02C;     /* elétrico */
+  --pesada: #EE8130;    /* fogo */
+
+  /* Cor = frequência. Um tipo do Pokémon por período da recorrente. */
+  --fada: #D685AD;      /* diário */
+  --poison: #A33EA1;    /* semanal */
+  --dragao: #6F35FC;    /* mensal */
+  /* variantes clareadas: as bases morrem como texto no fundo escuro */
+  --fada-txt: #E4ADCA;
+  --poison-txt: #CE84CC;
+  --dragao-txt: #A98BFF;
+
+  /* Nos jogos a barra de EXP é azul; verde/amarelo/vermelho são HP. */
+  --xp: #4FC3F7;
+
+  /* Navegação entre páginas: um tipo por destino. */
+  --psiquico: #F95587;  /* financeiro */
+  --planta: #7AC74C;    /* dieta (mesmo verde de grama) */
+  --voador: #A98FF3;    /* agora */
+
+  --lava: #B0240F;      /* vermelho pokémon escuro, lava — só no botão de power */
+
+  --display: "Fredoka", system-ui, sans-serif;
+  --corpo: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--corpo);
+  background: var(--fundo);
+  color: var(--texto);
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 4rem;
+  line-height: 1.5;
+}
+
+.linha-topo { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+
+/* Topo (companheiro) em largura cheia; abaixo, duas colunas: o dia à esquerda,
+   as recorrentes à direita, começando logo abaixo do companheiro. */
+#conteudo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 2.5rem;
+  align-items: start;
+}
+#principal { min-width: 0; }
+@media (max-width: 820px) {
+  #conteudo { grid-template-columns: 1fr; gap: 0; }
+}
+
+/* Títulos de seção: todos na mesma pegada — Fredoka, maiúscula, negrito.
+   Branco puro + leve glow branco pra o título liderar o olhar: fica mais claro
+   que o off-white dos cards, então guia a leitura em vez de competir com eles. */
+h2 {
+  font-family: var(--display);
+  font-size: .9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: #FFFFFF;
+  text-shadow: 0 0 10px rgba(255, 255, 255, .18);
+  margin: 2.2rem 0 .8rem;
+}
+
+/* ---- companheiro + metas na mesma linha: reserva | XP | Canadá ---- */
+#pokemon { display: flex; flex-direction: row; justify-content: center; align-items: flex-end; gap: 1.4rem; padding: 1.5rem 0 .5rem; }
+#companheiro { display: flex; flex-direction: column; align-items: center; gap: .4rem; }
+#sprite {
+  width: 288px; height: 288px;
+  image-rendering: pixelated;   /* 96px × 3: pixel quadrado e nítido, sem borrão */
+  cursor: pointer;              /* clicar cutuca o companheiro */
+}
+#pk-nome { font-family: var(--display); font-size: 1.5rem; font-weight: 600; }
+.xp { display: flex; align-items: center; gap: .7rem; width: 260px; }
+.barra { flex: 1; background: #FFFFFF14; border-radius: 99px; height: 5px; overflow: hidden; }
+#barra-xp { background: var(--xp); height: 100%; width: 0; transition: width .9s ease; }
+#pk-xp { font-size: .7rem; color: var(--fraco); font-variant-numeric: tabular-nums; }
+
+/* Pokémon de meta: cresce de tamanho com o guardado; marcador vertical à esquerda,
+   número de R$ liderando embaixo. Menor que o companheiro de propósito. */
+.meta-corpo { display: flex; flex-direction: column; align-items: center; gap: .2rem; width: 130px; }
+.meta-topo { display: flex; align-items: flex-end; gap: .45rem; height: 120px; }
+.meta-trilho {
+  position: relative; width: 6px; height: 100%;
+  border-radius: 99px; background: #6390F026; border: 1px solid #6390F033; overflow: hidden;
+}
+.meta-preench {
+  position: absolute; bottom: 0; left: 0; width: 100%;
+  background: linear-gradient(180deg, #9DB7F5, #6390F0);
+  /* sobe com uma leve ultrapassada, pra encher dramático */
+  transition: height .8s cubic-bezier(.34, 1.4, .64, 1);
+}
+.meta-trilho.cheia .meta-preench { background: linear-gradient(180deg, #A7DB8D, #7AC74C); }
+.meta-sprite-cx { display: flex; align-items: flex-end; justify-content: center; height: 100%; }
+.meta-sprite {
+  image-rendering: pixelated;
+  /* cresce com mola: o depósito faz o bicho dar aquele estica-e-assenta */
+  transition: width .6s cubic-bezier(.34, 1.56, .64, 1), height .6s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* depósito: a reação dramática do pokémon de meta */
+.meta-corpo.deposito .meta-sprite { animation: meta-pop .7s ease; }
+@keyframes meta-pop {
+  0% { filter: none; }
+  40% { filter: brightness(1.6) drop-shadow(0 0 14px #FFD54A) drop-shadow(0 0 22px #FFB300); }
+  100% { filter: none; }
+}
+.meta-trilho.brilho { animation: trilho-brilho .9s ease; }
+@keyframes trilho-brilho {
+  0%, 100% { box-shadow: none; }
+  45% { box-shadow: 0 0 14px 3px #6390F0; }
+}
+.meta-trilho.cheia.brilho { animation: trilho-brilho-cheia .9s ease; }
+@keyframes trilho-brilho-cheia {
+  0%, 100% { box-shadow: none; }
+  45% { box-shadow: 0 0 16px 4px #7AC74C; }
+}
+/* o "+R$X" que sobe flutuando no depósito */
+.meta-ganho {
+  position: fixed; transform: translateX(-50%);
+  font-family: var(--display); font-weight: 600; font-size: 1.05rem;
+  color: #FFD54A; text-shadow: 0 0 8px #FFB300; pointer-events: none; z-index: 60;
+  animation: subir-ganho 1.15s ease-out forwards;
+}
+@keyframes subir-ganho {
+  0% { opacity: 0; transform: translateX(-50%) translateY(8px) scale(.8); }
+  20% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.05); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-46px) scale(1); }
+}
+.meta-val {
+  font-family: var(--display); font-weight: 600; font-size: 1.1rem; line-height: 1;
+  color: var(--pesada); font-variant-numeric: tabular-nums; cursor: pointer;
+}
+.meta-val:hover { text-decoration: underline dotted; }
+.meta-rot {
+  font-family: var(--display); font-size: .62rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .08em; color: var(--fraco);
+}
+.meta-input {
+  width: 90px; font-family: var(--display); font-weight: 600; font-size: 1.1rem;
+  text-align: center; color: var(--texto);
+  background: var(--superficie-alta); border: 1px solid var(--borda); border-radius: 8px;
+}
+
+#data { font-size: .85rem; color: var(--fraco); }
+
+/* ---- captura rápida ---- */
+/* Primeira coisa da coluna e sempre visível: o pensamento sai da cabeça antes de
+   virar decisão. Sem botão — enter basta, e o foco fica pra despejar em sequência. */
+#captura { margin-top: 1.4rem; }
+#captura-texto {
+  width: 100%;
+  border-radius: 9px; border: 1px dashed var(--borda);
+  padding: .6rem .8rem; background: var(--superficie); color: var(--texto);
+  font-family: var(--corpo); font-size: .95rem;
+}
+#captura-texto::placeholder { color: var(--fraco); }
+#captura-texto:focus { outline: none; border-color: var(--media); border-style: solid; }
+.captura-ok {
+  margin: .35rem 0 0; height: .9rem;
+  font-size: .74rem; color: var(--media);
+  opacity: 0; transition: opacity .2s;
+}
+.captura-ok.visivel { opacity: 1; }
+
+/* ---- agenda: botão no topo, conteúdo em modal ---- */
+/* Consulta pontual não merece espaço permanente numa tela vertical. */
+.btn-agenda {
+  font-family: var(--display); font-weight: 600; font-size: .72rem;
+  text-transform: uppercase; letter-spacing: .06em;
+  padding: .26rem .7rem; border-radius: 7px; cursor: pointer;
+  border: 1px solid #A98FF355; background: #A98FF314; color: var(--voador);
+  transition: background .15s, border-color .15s;
+}
+.btn-agenda:hover { background: #A98FF32B; border-color: var(--voador); }
+
+#modal-agenda {
+  width: min(560px, 92vw);
+  border: 1px solid var(--borda); border-radius: 14px;
+  background: var(--superficie); color: var(--texto);
+  padding: 1.2rem 1.4rem 1.4rem;
+}
+#modal-agenda::backdrop { background: #0009; }
+#modal-agenda h2 { margin: 0; }
+#fechar-agenda {
+  cursor: pointer; background: transparent; border: none;
+  color: var(--fraco); font-size: 1rem; line-height: 1; padding: .2rem;
+}
+#fechar-agenda:hover { color: var(--texto); }
+#modal-agenda #eventos { margin-top: 1rem; }
+#modal-agenda .vazio { color: var(--fraco); font-style: italic; font-size: .88rem; }
+
+/* duas colunas, e o brilho conta a hora */
+#eventos {
+  list-style: none; padding: 0; margin: 0;
+  columns: 2; column-gap: 1.5rem;   /* flui pra baixo e depois pro lado: cronológico */
+}
+#eventos li {
+  display: flex; gap: .7rem; align-items: baseline;
+  padding: .3rem 0; font-size: .9rem;
+  break-inside: avoid;
+}
+#eventos li .hora {
+  font-variant-numeric: tabular-nums;
+  color: var(--fraco); font-size: .78rem; min-width: 4.4rem;
+}
+#eventos li.passado { opacity: .3; }
+#eventos li.agora { font-weight: 600; }
+#eventos li.agora .hora { color: var(--texto); }
+#eventos li.agora .hora::after { content: " ●"; }
+
+/* ---- agora ---- */
+/* mesmo estilo de eyebrow dos outros títulos; só zera a margem de baixo porque
+   o #cards já traz o próprio respiro e o #janela divide a linha do lado. */
+#agora h2 { margin-bottom: 0; }
+#janela { font-size: .8rem; color: var(--fraco); margin: 0; text-align: right; }
+/* os cards empilham na vertical e num bloco estreito: ocupam bem menos espaço
+   e as baterias/pills alinham em coluna entre um card e outro. */
+#cards {
+  display: flex; flex-direction: column; gap: .5rem; margin-top: 1rem;
+  max-width: 520px;
+}
+.card {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  padding: .55rem .75rem;
+  display: flex; flex-direction: row; align-items: center; gap: .7rem;
+}
+.card .titulo { flex: 1; min-width: 0; font-family: var(--display); font-size: .95rem; font-weight: 600; line-height: 1.25; }
+
+/* botão feito: pill na cor do XP (a cor de "progresso" — concluir dá XP).
+   Tinta + texto saturado: destaca do fundo sem virar um bloco pesado. */
+.card button {
+  flex: 0 0 auto;
+  font-family: var(--display); font-weight: 600; font-size: .8rem;
+  cursor: pointer; border-radius: 99px;
+  padding: .3rem .85rem;
+  background: #4FC3F71F; color: var(--xp); border: 1px solid #4FC3F755;
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.card button:hover { background: #4FC3F733; border-color: var(--xp); }
+.card button:active { transform: translateY(1px); }
+
+#outras {
+  margin-top: .5rem; max-width: 520px; width: 100%; cursor: pointer;
+  border-radius: 9px; border: 1px dashed var(--borda);
+  padding: .55rem; background: transparent; color: var(--fraco);
+  font-family: var(--corpo); font-size: .85rem;
+  transition: color .15s, border-color .15s;
+}
+#outras:hover { color: var(--texto); border-color: #3B4351; }
+
+#cards .vazio { color: var(--fraco); }
+
+/* energia como bateria de celular: 3 células, preenche 1/2/3 na cor do nível.
+   casca neutra (é o "corpo" da bateria); só as células acesas puxam cor. */
+.bateria {
+  /* `flex: 0 0 auto` só segura o eixo principal; dentro de uma coluna (as
+     recorrentes) o stretch esticava a bateria na largura toda da coluna.
+     Largura definida mata o stretch sem mexer no alinhamento dos cards. */
+  flex: 0 0 auto; width: fit-content;
+  display: inline-flex; align-items: center; gap: 2px;
+  height: 1.35rem; padding: 0 3px; margin-right: 3px;
+  border: 1.5px solid var(--borda); border-radius: 4px;
+  position: relative; box-sizing: border-box;
+}
+.bateria::after {   /* o pino do topo da bateria */
+  content: ""; position: absolute; right: -3px; top: 50%; transform: translateY(-50%);
+  width: 2px; height: 6px; background: var(--borda); border-radius: 0 2px 2px 0;
+}
+.bateria .celula { width: 5px; height: .68rem; border-radius: 1px; background: #FFFFFF14; }
+.bateria[data-energia="leve"]   .celula:nth-child(1)     { background: var(--leve); }
+.bateria[data-energia="média"]  .celula:nth-child(-n+2)  { background: var(--media); }
+.bateria[data-energia="pesada"] .celula                  { background: var(--pesada); }
+
+/* ---- diário ---- */
+#form-anotar { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+#anotacao {
+  flex: 1; min-width: 14rem;
+  border-radius: 9px; border: 1px solid var(--borda);
+  padding: .55rem .7rem; background: var(--superficie); color: var(--texto);
+  font-family: var(--corpo); font-size: .95rem;
+}
+#anotacao::placeholder { color: var(--fraco); }
+#anotacao:focus { outline: none; border-color: #3B4351; }
+#energias { display: flex; gap: .3rem; }
+#energias button {
+  cursor: pointer; border-radius: 99px; border: 1px solid var(--borda);
+  padding: .3rem .7rem; background: transparent; color: var(--fraco);
+  font-family: var(--corpo); font-size: .78rem;
+  transition: color .15s, border-color .15s, background .15s;
+}
+#energias button[data-energia="leve"].ativa { color: var(--leve); border-color: var(--leve); background: #7AC74C14; }
+#energias button[data-energia="média"].ativa { color: var(--media); border-color: var(--media); background: #F7D02C14; }
+#energias button[data-energia="pesada"].ativa { color: var(--pesada); border-color: var(--pesada); background: #EE813014; }
+#anotar {
+  cursor: pointer; border-radius: 9px; border: 1px solid var(--borda);
+  padding: .55rem .9rem; background: var(--superficie-alta); color: var(--texto);
+  font-family: var(--display); font-weight: 500; font-size: .85rem;
+}
+#anotar:hover { background: #2E3542; }
+#anotacoes { list-style: none; padding: 0; margin: .8rem 0 0; }
+#anotacoes li { display: flex; gap: .7rem; align-items: baseline; padding: .25rem 0; font-size: .88rem; }
+#anotacoes li .hora { font-variant-numeric: tabular-nums; color: var(--fraco); font-size: .78rem; min-width: 3rem; }
+#anotacoes li .energia { font-size: .68rem; color: var(--fraco); margin-left: auto; }
+#anotacoes .vazio { color: var(--fraco); font-style: italic; }
+
+/* ---- todas as tarefas: fechada, porque a curadoria é o produto ---- */
+#todas { margin-top: 2.2rem; border-top: 1px solid var(--borda); padding-top: .4rem; }
+#todas summary {
+  cursor: pointer; list-style: none;
+  font-family: var(--display); font-size: .9rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .1em; color: #FFFFFF;
+  text-shadow: 0 0 10px rgba(255, 255, 255, .18);
+  padding: .6rem 0; display: flex; align-items: center; gap: .5rem;
+}
+#todas summary::-webkit-details-marker { display: none; }
+#todas summary::before { content: "▸"; transition: transform .15s; display: inline-block; }
+#todas[open] summary::before { transform: rotate(90deg); }
+#todas summary:hover { text-shadow: 0 0 10px rgba(255, 255, 255, .35); }
+#conta { font-variant-numeric: tabular-nums; letter-spacing: 0; }
+
+#mostrar-add {
+  cursor: pointer; border-radius: 8px; border: 1px solid var(--borda);
+  padding: .3rem .6rem; background: transparent; color: var(--fraco);
+  font-family: var(--corpo); font-size: .78rem;
+}
+#mostrar-add:hover { color: var(--texto); }
+#form-add { display: flex; gap: .5rem; margin: .7rem 0; flex-wrap: wrap; }
+#form-add input, #form-add select, #form-add button {
+  border-radius: 8px; border: 1px solid var(--borda);
+  padding: .45rem .6rem; background: var(--superficie); color: var(--texto);
+  font-family: var(--corpo); font-size: .88rem;
+}
+#form-add input { flex: 1; min-width: 12rem; }
+#form-add button { cursor: pointer; background: var(--superficie-alta); }
+
+#lista { list-style: none; padding: 0; margin: .4rem 0 0; }
+#lista li { display: flex; align-items: center; gap: .6rem; padding: .3rem 0; font-size: .9rem; }
+#lista li.concluida { opacity: .4; text-decoration: line-through; }
+#lista li .repete {
+  font-size: .65rem; text-transform: uppercase; letter-spacing: .06em;
+  border: 1px solid var(--borda); border-radius: 999px; padding: 0 .45rem;
+  color: var(--fraco); text-decoration: none; margin-left: auto;
+}
+
+/* ---- recorrentes: a coluna da direita, cor = frequência ---- */
+#recorrentes h2 { margin-top: 2.2rem; }   /* alinha com o primeiro título da esquerda */
+@media (max-width: 820px) {
+  #recorrentes h2 { margin-top: 2.2rem; }
+}
+.grupo { margin-top: 1.3rem; }
+.grupo[data-freq="diario"]  { --cor: var(--fada);   --cor-txt: var(--fada-txt); }
+.grupo[data-freq="semanal"] { --cor: var(--poison); --cor-txt: var(--poison-txt); }
+.grupo[data-freq="mensal"]  { --cor: var(--dragao); --cor-txt: var(--dragao-txt); }
+
+.grupo h3 {
+  font-family: var(--display); font-size: .7rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .1em;
+  margin: 0 0 .55rem; color: var(--cor-txt);
+  display: flex; align-items: center; gap: .45rem;
+}
+.grupo h3::before {
+  content: ""; width: .5rem; height: .5rem; border-radius: 2px; background: var(--cor);
+}
+.grupo ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .4rem; }
+
+.grupo li {
+  display: flex; gap: .6rem; align-items: flex-start;
+  padding: .5rem .6rem;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-left: 3px solid var(--cor);
+  border-radius: 10px;
+}
+.grupo li .marcar {
+  flex: 0 0 auto; width: 1.15rem; height: 1.15rem; margin-top: .05rem;
+  border-radius: 50%; border: 2px solid var(--cor);
+  background: transparent; cursor: pointer; padding: 0;
+  transition: background .15s;
+}
+.grupo li .marcar:hover { background: color-mix(in srgb, var(--cor) 30%, transparent); }
+.grupo li .corpo { display: flex; flex-direction: column; gap: .05rem; min-width: 0; }
+.grupo li .corpo .titulo { font-family: var(--display); font-size: .9rem; font-weight: 500; line-height: 1.25; }
+.grupo li .corpo .meta { font-size: .7rem; color: var(--fraco); font-variant-numeric: tabular-nums; }
+
+/* feita neste período: apaga, some o traço colorido, e o círculo fica cheio */
+.grupo li.feita { opacity: .5; background: transparent; border-left-color: var(--borda); }
+.grupo li.feita .marcar { background: var(--cor); border-color: var(--cor); cursor: default; }
+
+/* ---- financeiro: reaproveita tokens, títulos e a linguagem de pills ---- */
+/* página densa de dados: ganha mais largura que a Agora */
+body.pagina-financeiro { max-width: 1000px; }
+
+#mes { font-size: .85rem; color: var(--fraco); }
+.conta-sec { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--fraco);
+  font-size: .72rem; text-shadow: none; }
+
+/* resumo do mês: caixa própria, na cor de fogo do Pokémon */
+#totais {
+  display: flex; flex-wrap: wrap; gap: 1.7rem;
+  margin-top: 1.1rem; padding: .85rem 1.1rem;
+  border: 1px solid #EE813059; border-radius: 12px; background: #EE81300D;
+}
+.stat { display: flex; flex-direction: column; }
+.stat-val { font-family: var(--display); font-weight: 600; font-size: 1.3rem;
+  color: var(--pesada); font-variant-numeric: tabular-nums; }
+.stat-rot { font-size: .66rem; text-transform: uppercase; letter-spacing: .08em;
+  color: #EE8130B3; }
+/* Abaixo do resumo, duas caixas lado a lado: o que sai (esquerda) e a
+   reserva (direita), que é a única com cara de jogo. */
+#caixas-baixo {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: .9rem; margin-top: .9rem;
+}
+@media (max-width: 720px) { #caixas-baixo { grid-template-columns: 1fr; } }
+
+/* as duas stats centradas na vertical: a caixa acompanha a altura da reserva
+   e o conteúdo não fica pendurado no topo */
+#custos {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 1.7rem;
+  padding: .85rem 1.1rem;
+  border: 1px solid var(--borda); border-radius: 12px; background: var(--superficie);
+}
+
+#reserva {
+  display: flex; flex-direction: column; gap: .45rem;
+  padding: .85rem 1.1rem; border-radius: 12px;
+  border: 1px solid #6390F059; background: #6390F00D;
+}
+#reserva-topo { display: flex; justify-content: space-between; align-items: baseline; }
+#reserva-rot {
+  font-family: var(--display); font-size: .66rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .08em; color: #6390F0B3;
+}
+#reserva-pct {
+  font-family: var(--display); font-weight: 600; font-size: .8rem; color: #6390F0;
+  font-variant-numeric: tabular-nums;
+}
+#reserva-nums { display: flex; align-items: baseline; gap: .45rem; }
+#reserva-val {
+  font-family: var(--display); font-weight: 600; font-size: 1.3rem;
+  color: var(--pesada); font-variant-numeric: tabular-nums; cursor: pointer;
+}
+#reserva-val:hover { text-decoration: underline dotted; }
+/* a meta é o número que importa alcançar: legível, não nota de rodapé */
+#reserva-meta {
+  font-family: var(--display); font-weight: 500; font-size: 1rem;
+  color: #6390F0; font-variant-numeric: tabular-nums;
+}
+
+/* a barra de XP: mesma leitura da tela do companheiro */
+#xp-fundo {
+  height: 9px; border-radius: 99px; overflow: hidden;
+  background: #6390F026; border: 1px solid #6390F033;
+}
+#xp-barra {
+  height: 100%; width: 0; border-radius: 99px;
+  background: linear-gradient(90deg, #6390F0, #9DB7F5);
+  transition: width .5s ease;
+}
+#reserva.cheia { border-color: #7AC74C80; background: #7AC74C12; }
+#reserva.cheia #xp-barra { background: linear-gradient(90deg, #7AC74C, #A7DB8D); }
+#reserva.cheia #reserva-pct { color: #7AC74C; }
+
+/* o guardado vem da mão: o valor vira input no clique */
+.valor-input {
+  font-family: var(--display); font-weight: 600; font-size: 1.3rem;
+  color: var(--pesada); font-variant-numeric: tabular-nums;
+  width: 8ch; padding: 0; background: transparent;
+  border: none; border-bottom: 2px solid var(--pesada);
+  appearance: none; -moz-appearance: textfield;
+}
+.valor-input::-webkit-outer-spin-button,
+.valor-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* linhas (recebimentos, contas, gastos): mesmo card-linha da coluna de recorrentes */
+.linhas-fin { list-style: none; padding: 0; margin: .7rem 0 0; display: flex; flex-direction: column; gap: .3rem; }
+.linhas-fin li {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .42rem .6rem; background: var(--superficie);
+  border: 1px solid var(--borda); border-radius: 10px;
+}
+.info-fin { display: flex; flex-direction: column; gap: .05rem; flex: 1; min-width: 0; }
+.nome-fin { font-family: var(--display); font-weight: 500; font-size: .92rem; line-height: 1.2; }
+.sub-fin { font-size: .7rem; color: var(--fraco); font-variant-numeric: tabular-nums; }
+.acoes-fin { display: flex; align-items: center; gap: .35rem; flex-shrink: 0; }
+.linhas-fin li.pausado { opacity: .45; }
+.linhas-fin li.quitada { opacity: .5; }
+
+/* coluna própria pro dinheiro: valor em cima, quantidade embaixo, alinhados à direita
+   pra bater entre uma linha e outra */
+.valor-col { display: flex; flex-direction: column; align-items: flex-end; flex: 0 0 auto; min-width: 5.2rem; }
+.valor-fin { font-family: var(--display); font-weight: 600; font-size: .95rem; line-height: 1.15;
+  font-variant-numeric: tabular-nums; }
+.qtd-fin { font-size: .68rem; color: var(--fraco); font-variant-numeric: tabular-nums; }
+
+/* a parcela é informação de primeira classe nas contas */
+.nome-linha { display: flex; align-items: center; gap: .45rem; min-width: 0; }
+.parcela {
+  flex: 0 0 auto;
+  font-family: var(--display); font-weight: 600; font-size: .66rem; letter-spacing: .03em;
+  padding: .06rem .4rem; border-radius: 5px; font-variant-numeric: tabular-nums;
+  background: #4FC3F71F; color: var(--xp);
+}
+.parcela.ultima { background: #7AC74C1F; color: var(--leve); }   /* acaba este mês */
+
+/* toggle avisei/pago: pill com presença mesmo desligado (o fundo escuro
+   engolia a versão anterior), e que acende na cor do estado quando ligado */
+.toggle-fin, .copiar-fin {
+  font-family: var(--display); font-weight: 600; font-size: .74rem;
+  cursor: pointer; border-radius: 99px; padding: .26rem .72rem;
+  border: 1px solid #3B4351; background: var(--superficie-alta); color: var(--texto);
+  transition: color .15s, border-color .15s, background .15s;
+}
+.toggle-fin:hover, .copiar-fin:hover { background: #2E3542; border-color: #4A5464; }
+.toggle-fin[data-cor="aviso"].on { color: var(--xp);  border-color: var(--xp);  background: #4FC3F726; }
+.toggle-fin[data-cor="pago"].on  { color: var(--leve); border-color: var(--leve); background: #7AC74C26; }
+
+.copiar-fin { background: transparent; }
+.copiar-fin.ok { color: var(--leve); border-color: var(--leve); background: #7AC74C1F; }
+
+/* duas colunas desde o topo: o que entra (esquerda) e o que sai (direita) */
+#grade-fin { display: grid; grid-template-columns: 1.45fr 1fr; gap: 2rem; align-items: start; }
+#receber-sec, #pagar-sec { min-width: 0; }
+/* alinha o primeiro título das duas colunas na mesma altura */
+#receber-sec > h2, #pagar-sec > section:first-child > h2 { margin-top: 1.8rem; }
+@media (max-width: 860px) { #grade-fin { grid-template-columns: 1fr; gap: 0; } }
+
+#pausados-wrap { margin-top: .9rem; }
+#pausados-wrap summary {
+  cursor: pointer; list-style: none;
+  font-family: var(--display); font-size: .72rem; font-weight: 500;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--fraco);
+  padding: .4rem 0; display: flex; align-items: center; gap: .4rem;
+}
+#pausados-wrap summary::-webkit-details-marker { display: none; }
+#pausados-wrap summary::before { content: "▸"; transition: transform .15s; }
+#pausados-wrap[open] summary::before { transform: rotate(90deg); }
+
+#form-gasto { display: flex; gap: .5rem; margin-top: .7rem; flex-wrap: wrap; }
+#form-gasto input {
+  border-radius: 8px; border: 1px solid var(--borda); padding: .45rem .6rem;
+  background: var(--superficie); color: var(--texto); font-family: var(--corpo); font-size: .88rem;
+}
+#form-gasto input::placeholder { color: var(--fraco); }
+#form-gasto input:focus { outline: none; border-color: #3B4351; }
+#gasto-local { flex: 1; min-width: 8rem; }
+#gasto-valor { width: 6rem; }
+#add-gasto {
+  cursor: pointer; border-radius: 8px; border: 1px solid var(--borda);
+  padding: .45rem .85rem; background: var(--superficie-alta); color: var(--texto);
+  font-family: var(--display); font-weight: 500; font-size: .82rem;
+}
+#add-gasto:hover { background: #2E3542; }
+
+/* navegação: mesmo pill em todas as páginas, um tipo do Pokémon por destino.
+   O markup sai do nav.js — aqui só mora a cor. */
+#nav { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.topo-esq { display: flex; align-items: center; gap: .7rem; }
+
+/* ---- botão de power: desligar / reiniciar ----
+   Fechado é um círculo com o símbolo de power em vermelho-lava. Ao abrir, cresce e
+   vira uma elipse (border-radius 50% num box mais largo) dividida ao meio: metade
+   esquerda reinicia, direita desliga. É o único "quente" fora do companheiro — chrome
+   de controle, não dado de categoria. */
+.power {
+  position: relative;
+  flex: none;
+  width: 30px; height: 30px;
+  border: 2px solid var(--lava);
+  border-radius: 50%;
+  background: transparent;
+  overflow: hidden;
+  transition: width .22s ease, background-color .22s ease;
+}
+.power-toggle {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  padding: 0; margin: 0; border: none; background: none;
+  color: var(--lava); cursor: pointer;
+  transition: opacity .14s ease;
+}
+.power-toggle svg { width: 15px; height: 15px; }
+.power-metade {
+  position: absolute; top: 0; bottom: 0; width: 50%;
+  display: grid; place-items: center;
+  padding: 0; margin: 0; border: none; background: none;
+  color: var(--lava); font-size: 1rem; line-height: 1; cursor: pointer;
+  opacity: 0; pointer-events: none;
+  transition: opacity .16s ease, background-color .12s ease;
+}
+.power-reiniciar { left: 0; }
+.power-desligar { right: 0; }
+
+.power.aberto {
+  width: 68px;
+  background: rgba(176, 36, 15, .12);
+}
+.power.aberto .power-toggle { opacity: 0; pointer-events: none; }
+.power.aberto .power-metade { opacity: 1; pointer-events: auto; }
+.power.aberto .power-metade:hover { background: rgba(176, 36, 15, .22); }
+.power.aberto::after {   /* divisória no meio da elipse */
+  content: ""; position: absolute; top: 4px; bottom: 4px; left: 50%;
+  width: 1px; margin-left: -.5px; background: var(--lava); opacity: .5;
+}
+
+/* tela de estado após desligar/reiniciar (substitui o corpo inteiro) */
+.tela-final {
+  min-height: 60vh; display: grid; place-content: center;
+  text-align: center; gap: .3rem; padding: 3rem;
+}
+.tela-final p { font-family: var(--display); font-size: 1.4rem; margin: 0; }
+.tela-final .sub { font-size: .95rem; color: var(--fraco); font-family: var(--corpo); }
+.nav-btn {
+  font-family: var(--display); font-weight: 600; font-size: .8rem;
+  padding: .34rem .95rem; border-radius: 99px; text-decoration: none;
+  border: 1px solid; transition: background .15s, border-color .15s, transform .1s;
+}
+.nav-btn:active { transform: translateY(1px); }
+.nav-btn.agora      { color: var(--voador);   border-color: #A98FF366; background: #A98FF31F; }
+.nav-btn.agora:hover      { background: #A98FF333; border-color: var(--voador); }
+.nav-btn.dieta      { color: var(--planta);   border-color: #7AC74C66; background: #7AC74C1F; }
+.nav-btn.dieta:hover      { background: #7AC74C33; border-color: var(--planta); }
+.nav-btn.financeiro { color: var(--psiquico); border-color: #F9558766; background: #F955871F; }
+.nav-btn.financeiro:hover { background: #F9558733; border-color: var(--psiquico); }
+.nav-btn.objetivos  { color: var(--dragao-txt); border-color: #6F35FC66; background: #6F35FC1F; }
+.nav-btn.objetivos:hover  { background: #6F35FC33; border-color: var(--dragao-txt); }
+
+/* contador de inbox: só informa quantas linhas esperam triagem (a triagem em si
+   é feita por fora do app) — tracejado pra se distinguir dos pills de navegação */
+.inbox-contador {
+  font-family: var(--display); font-weight: 600; font-size: .72rem;
+  text-transform: uppercase; letter-spacing: .06em;
+  padding: .26rem .7rem; border-radius: 7px;
+  border: 1px dashed #F7D02C77; background: #F7D02C14; color: var(--media);
+}
+
+/* ---- dieta: plano à esquerda, mercado à direita, corpo embaixo ---- */
+body.pagina-dieta { max-width: 1000px; }
+#fonte-dieta { font-size: .85rem; color: var(--fraco); }
+/* inbox da dieta: primeiro bloco da página, mesmo atrito zero da tela Agora */
+#captura-dieta { margin: 1.4rem 0 .4rem; }
+#captura-dieta-texto {
+  width: 100%;
+  border-radius: 9px; border: 1px dashed var(--borda);
+  padding: .6rem .8rem; background: var(--superficie); color: var(--texto);
+  font-family: var(--corpo); font-size: .95rem;
+}
+#captura-dieta-texto::placeholder { color: var(--fraco); }
+#captura-dieta-texto:focus { outline: none; border-color: var(--planta); border-style: solid; }
+#captura-dieta .captura-ok { color: var(--planta); }
+#notas-dieta {
+  list-style: none; padding: 0; margin: .4rem 0 0;
+  display: flex; flex-direction: column; gap: .2rem;
+}
+#notas-dieta li { font-size: .8rem; color: var(--fraco); }
+#notas-dieta:empty { display: none; }
+
+#grade-dieta { display: grid; grid-template-columns: 1.35fr 1fr; gap: 2rem; align-items: start; }
+#plano, #mercado { min-width: 0; }
+#plano > h2, #mercado > h2 { margin-top: 1.8rem; }
+@media (max-width: 860px) { #grade-dieta { grid-template-columns: 1fr; gap: 0; } }
+
+/* Cor = categoria do alimento. Um tipo de Pokémon por grupo, pra bater o olho
+   e saber o que é sem ler o nome. */
+.pagina-dieta {
+  --cat-proteina: #EE8130;   /* fogo */
+  --cat-carbo:    #F7D02C;   /* elétrico */
+  --cat-salada:   #7AC74C;   /* grama */
+  --cat-fruta:    #D685AD;   /* fada */
+  --cat-liquido:  #96D9D6;   /* gelo */
+  --cat-molho:    #CE84CC;   /* venenoso, clareado pra ler no escuro */
+}
+[data-cat="proteina"] { --cat: var(--cat-proteina); }
+[data-cat="carbo"]    { --cat: var(--cat-carbo); }
+[data-cat="salada"]   { --cat: var(--cat-salada); }
+[data-cat="fruta"]    { --cat: var(--cat-fruta); }
+[data-cat="liquido"]  { --cat: var(--cat-liquido); }
+[data-cat="molho"]    { --cat: var(--cat-molho); }
+
+.legenda-cat {
+  list-style: none; padding: 0; margin: 0 0 .6rem;
+  display: flex; flex-wrap: wrap; gap: .3rem .7rem;
+}
+.legenda-cat li {
+  display: flex; align-items: center; gap: .28rem;
+  font-size: .65rem; color: var(--fraco); text-transform: uppercase; letter-spacing: .05em;
+}
+.legenda-cat li::before {
+  content: ""; width: .5rem; height: .5rem; border-radius: 2px;
+  background: var(--cat, var(--fraco));
+}
+
+/* uma refeição = um bloco que se lê de relance */
+.refeicao {
+  background: var(--superficie); border: 1px solid var(--borda);
+  border-radius: 12px; padding: .6rem .75rem; margin-bottom: .5rem;
+}
+.refeicao-topo { display: flex; align-items: baseline; gap: .55rem; margin-bottom: .4rem; }
+.hora-dieta {
+  font-family: var(--display); font-weight: 600; font-size: .74rem;
+  color: var(--planta); background: #7AC74C1F; padding: .08rem .45rem;
+  border-radius: 5px; font-variant-numeric: tabular-nums;
+}
+.nome-refeicao { font-family: var(--display); font-weight: 600; font-size: 1rem; }
+.kcal-refeicao { margin-left: auto; font-size: .7rem; color: var(--fraco); font-variant-numeric: tabular-nums; }
+
+/* A quantidade fica na direita, em coluna fixa e colorida pela categoria: os
+   números alinham verticalmente e a categoria se lê pela cor, sem legenda longa. */
+.itens-dieta { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .18rem; }
+.itens-dieta li {
+  display: grid; grid-template-columns: 1fr 9.5rem; gap: .55rem;
+  align-items: baseline; font-size: .86rem;
+}
+/* A quantidade é o acionável da linha: sem medida caseira concorrendo, ela pode
+   crescer e ser lida de relance na hora de montar o prato. */
+.itens-dieta .item-qtd {
+  font-size: .95rem; font-weight: 700; line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  padding: .12rem .4rem; border-radius: 6px; text-align: center;
+  color: var(--cat, var(--fraco));
+  background: color-mix(in srgb, var(--cat, #FFFFFF) 14%, transparent);
+}
+.item-nome { min-width: 0; }
+.alt-item { color: var(--fraco); font-size: .78rem; font-style: normal; }
+.obs-dieta { font-size: .75rem; color: var(--fraco); line-height: 1.45; margin: .5rem 0 0; font-style: italic; }
+
+/* substituições fechadas: o dia se lê primeiro pela opção principal */
+.sub-dieta { margin-top: .4rem; border-top: 1px solid var(--borda); padding-top: .35rem; }
+.sub-dieta summary {
+  cursor: pointer; list-style: none; display: flex; align-items: baseline; gap: .4rem;
+  font-family: var(--display); font-size: .66rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .08em; color: var(--fraco);
+}
+.sub-dieta summary::-webkit-details-marker { display: none; }
+.sub-dieta summary::before { content: "▸"; }
+.sub-dieta[open] summary::before { content: "▾"; }
+.kcal-sub { margin-left: auto; letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; }
+.sub-dieta .itens-dieta { margin-top: .35rem; }
+
+/* mercado: uma linha por item, quantidade em destaque, nada de nota */
+.grupo-compra { margin-bottom: .9rem; }
+.grupo-compra h3 {
+  display: flex; align-items: center; gap: .5rem; margin: 0 0 .35rem;
+  font-family: var(--display); font-size: .72rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .08em; color: var(--texto);
+}
+.freq-badge {
+  font-family: var(--display); font-weight: 600; font-size: .62rem;
+  padding: .06rem .42rem; border-radius: 5px; text-transform: none; letter-spacing: 0;
+}
+.freq-badge[data-freq="2x"]        { background: #EE81301F; color: var(--pesada); }
+.freq-badge[data-freq="semanal"]   { background: #F7D02C1F; color: var(--media); }
+.freq-badge[data-freq="quinzenal"] { background: #4FC3F71F; color: var(--xp); }
+.freq-badge[data-freq="mensal"]    { background: #FFFFFF12; color: var(--fraco); }
+
+.lista-compra { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .2rem; }
+.lista-compra li {
+  display: grid; grid-template-columns: 1.05rem 1fr 6rem; gap: .5rem;
+  align-items: center; padding: .25rem .5rem; background: var(--superficie);
+  border: 1px solid var(--borda); border-radius: 8px; font-size: .84rem;
+}
+.marcar-compra {
+  width: 1.05rem; height: 1.05rem;
+  border-radius: 50%; border: 2px solid var(--planta); background: transparent;
+  cursor: pointer; padding: 0; transition: background .15s;
+}
+.marcar-compra:hover { background: #7AC74C40; }
+.qtd-compra {
+  font-family: var(--display); font-weight: 600; font-size: .95rem;
+  color: var(--planta); text-align: right; font-variant-numeric: tabular-nums;
+}
+.lista-compra li.comprado { opacity: .4; }
+.lista-compra li.comprado .marcar-compra { background: var(--planta); }
+
+/* ---- corpo: a última avaliação contra a anterior ---- */
+#corpo > h2 { margin-top: 2.4rem; }
+#medidas { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: .8rem; }
+.grupo-corpo {
+  background: var(--superficie); border: 1px solid var(--borda);
+  border-radius: 12px; padding: .6rem .75rem;
+}
+.grupo-corpo h3 {
+  margin: 0 0 .35rem; font-family: var(--display); font-size: .7rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .08em; color: var(--fraco);
+}
+.legenda-grupo { margin: -.2rem 0 .4rem; font-size: .68rem; color: var(--fraco); }
+.lista-medida { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .18rem; }
+.lista-medida li {
+  display: grid; grid-template-columns: 1fr auto auto 3.4rem; gap: .45rem;
+  align-items: baseline; font-size: .82rem; font-variant-numeric: tabular-nums;
+}
+.antes-medida { color: var(--fraco); font-size: .74rem; }
+.antes-medida::after { content: " →"; }
+.agora-medida { font-weight: 600; }
+.delta-medida {
+  text-align: right; font-size: .72rem; font-weight: 600;
+  padding: .04rem .3rem; border-radius: 5px;
+}
+.delta-medida[data-sinal="sobe"]  { color: var(--pesada); background: #EE81301F; }
+.delta-medida[data-sinal="desce"] { color: var(--xp);     background: #4FC3F71F; }
+.delta-medida[data-sinal="igual"] { color: var(--fraco);  background: #FFFFFF10; }
+
+#nota-corpo {
+  margin: .8rem 0 0; padding: .6rem .8rem; font-size: .82rem; line-height: 1.55;
+  color: var(--texto); background: #FFFFFF08;
+  border: 1px solid var(--borda); border-left: 3px solid var(--fada);
+  border-radius: 10px;
+}
+
+
+/* ---- objetivos: coluna única, um card por objetivo de longo prazo ---- */
+/* Cor = dragão (roxo): o objetivo é a coisa mais longa do sistema. Só o sinal de
+   "em andamento" puxa cor; o resto é cinza, como nas outras telas. */
+.pagina-objetivos { max-width: 760px; }
+#fonte-obj { font-size: .85rem; color: var(--fraco); }
+
+#objetivos { list-style: none; padding: 0; margin: 1.6rem 0 0;
+  display: flex; flex-direction: column; gap: .7rem; }
+
+.card-obj {
+  background: var(--superficie); border: 1px solid var(--borda);
+  border-left: 3px solid var(--dragao); border-radius: 12px;
+  padding: .8rem 1rem;
+}
+.titulo-obj {
+  font-family: var(--display); font-size: 1.05rem; font-weight: 600;
+  text-transform: none; letter-spacing: 0; color: var(--texto);
+  text-shadow: none; margin: 0;
+}
+.texto-obj { font-size: .85rem; color: var(--fraco); line-height: 1.5;
+  margin: .4rem 0 0; white-space: pre-line; }
+
+.rodape-obj {
+  display: flex; align-items: center; gap: .5rem .8rem; flex-wrap: wrap;
+  margin-top: .7rem;
+}
+.sinal-obj {
+  font-family: var(--display); font-weight: 600; font-size: .72rem;
+  padding: .16rem .55rem; border-radius: 99px; font-variant-numeric: tabular-nums;
+  color: var(--dragao-txt); background: #6F35FC1F; border: 1px solid #6F35FC55;
+}
+.chips-obj { display: flex; gap: .35rem; flex-wrap: wrap; }
+.chip-obj {
+  font-family: var(--display); font-weight: 500; font-size: .68rem;
+  padding: .14rem .5rem; border-radius: 6px;
+  color: var(--fraco); background: #FFFFFF12; border: 1px solid var(--borda);
+}
+
+/* objetivo parado: apaga e perde a cor no traço e no sinal — o alerta é a ausência */
+.card-obj.parado { opacity: .55; border-left-color: var(--borda); }
+.card-obj.parado .sinal-obj {
+  color: var(--fraco); background: #FFFFFF10; border-color: var(--borda);
+}
+.vazio-obj { list-style: none; color: var(--fraco); font-style: italic; }
+
+/* ---- acessibilidade ---- */
+:focus-visible { outline: 2px solid var(--xp); outline-offset: 2px; }
+
+/* ---- evolução: o companheiro vira pokébola e revela o novo ---- */
+.evo-pokebola {
+  position: fixed; pointer-events: none; z-index: 58;
+  transform-origin: center center; will-change: transform, filter, opacity;
+}
+.evo-pokebola svg { width: 100%; height: 100%; display: block; }
+
+#sprite.evo-sumir { animation: evo-sumir .43s ease forwards; }
+@keyframes evo-sumir {
+  0% { transform: scale(1) rotate(0); opacity: 1; }
+  60% { opacity: .4; }
+  100% { transform: scale(.12) rotate(-25deg); opacity: 0; }
+}
+
+.evo-surgir { animation: evo-surgir .43s ease; }
+@keyframes evo-surgir {
+  0% { transform: scale(.12); opacity: 0; }
+  65% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* chacoalha (se mexendo) e respira (encolhe/expande) */
+.evo-chacoalhar { animation: evo-chacoalhar 1.2s ease-in-out; }
+@keyframes evo-chacoalhar {
+  0%, 100% { transform: rotate(0) scale(1); }
+  12% { transform: rotate(-13deg) scale(.9); }
+  28% { transform: rotate(11deg) scale(1.1); }
+  44% { transform: rotate(-9deg) scale(.94); }
+  60% { transform: rotate(9deg) scale(1.07); }
+  76% { transform: rotate(-5deg) scale(.97); }
+  88% { transform: rotate(3deg) scale(1.03); }
+}
+
+/* brilho dourado antes de abrir */
+.evo-dourado { animation: evo-dourado .5s ease forwards; }
+@keyframes evo-dourado {
+  0% { filter: none; transform: scale(1); }
+  100% {
+    filter: brightness(1.7) drop-shadow(0 0 16px #FFD54A) drop-shadow(0 0 30px #FFB300);
+    transform: scale(1.14);
+  }
+}
+
+/* abre num flash e some */
+.evo-abrir { animation: evo-abrir .5s ease forwards; }
+@keyframes evo-abrir {
+  0% { opacity: 1; transform: scale(1.14);
+       filter: brightness(1.7) drop-shadow(0 0 16px #FFD54A); }
+  40% { opacity: 1; transform: scale(1.32);
+        filter: brightness(3.2) drop-shadow(0 0 44px #FFF3C4); }
+  100% { opacity: 0; transform: scale(1.55); }
+}
+
+/* o novo pokémon aparece num flash */
+#sprite.evo-revelar { animation: evo-revelar .55s ease; }
+@keyframes evo-revelar {
+  0% { transform: scale(.2); opacity: 0; filter: brightness(2.6); }
+  50% { opacity: 1; filter: brightness(1.6); }
+  100% { transform: scale(1); opacity: 1; filter: none; }
+}
+
+/* clicar no companheiro: uma balançadinha rápida */
+.cutucou { animation: cutucar .45s ease; }
+@keyframes cutucar {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-7deg); }
+  45% { transform: rotate(6deg); }
+  70% { transform: rotate(-3deg); }
+}
+
+/* ganhou XP: o companheiro dá um pulinho e a barra engrossa quando a energia chega */
+.ganhou { animation: bump .45s ease; }
+@keyframes bump {
+  0%, 100% { transform: scale(1); }
+  35% { transform: scale(1.13); }
+}
+.barra.pulsou { animation: engrossar .9s ease; }
+@keyframes engrossar {
+  0%, 100% { transform: scaleY(1); box-shadow: none; }
+  40% { transform: scaleY(3.8); box-shadow: 0 0 14px 3px var(--xp); }
+}
+
+/* a bolha de energia que voa do botão até a barra de XP: grande e sem pressa */
+.energia-xp {
+  position: fixed; left: 0; top: 0; width: 22px; height: 22px; border-radius: 50%;
+  background: radial-gradient(circle, #DBF3FF 30%, var(--xp));
+  box-shadow: 0 0 16px 4px var(--xp); pointer-events: none; z-index: 60;
+  transition: transform .85s cubic-bezier(.45, 0, .3, 1), opacity .85s ease;
+}
+
+/* fantasma translúcido do companheiro: escala pra fora e some, como se ele crescesse */
+.sprite-fantasma {
+  position: fixed; pointer-events: none; z-index: 55;
+  image-rendering: pixelated; opacity: 0;
+  animation: crescer-fantasma .9s ease-out;
+}
+@keyframes crescer-fantasma {
+  0% { opacity: .55; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.45); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  /* Exceção: o companheiro é o conteúdo, não enfeite. Sua reação (cutucada, pulinho,
+     energia voando, evolução) é o ponto do app — segue rodando mesmo com reduce. */
+  #sprite.cutucou, #sprite.ganhou { animation-duration: .45s !important; }
+  .barra.pulsou { animation-duration: .9s !important; }
+  .sprite-fantasma { animation-duration: .9s !important; }
+  .energia-xp { transition-duration: .85s !important; }
+  /* o preenchimento da barra também é reação intencional: deixa subir devagar */
+  #barra-xp { transition-duration: .9s !important; }
+  /* a cena de evolução é o clímax do app — roda inteira mesmo com reduce */
+  #sprite.evo-sumir { animation-duration: .43s !important; }
+  #sprite.evo-revelar { animation-duration: .55s !important; }
+  .evo-surgir { animation-duration: .43s !important; }
+  .evo-chacoalhar { animation-duration: 1.2s !important; }
+  .evo-dourado { animation-duration: .5s !important; }
+  .evo-abrir { animation-duration: .5s !important; }
+  /* o depósito no pokémon de meta: crescimento e drama seguem visíveis */
+  .meta-sprite { transition-duration: .6s, .6s !important; }
+  .meta-preench { transition-duration: .8s !important; }
+  .meta-corpo.deposito .meta-sprite { animation-duration: .7s !important; }
+  .meta-trilho.brilho, .meta-trilho.cheia.brilho { animation-duration: .9s !important; }
+  .meta-ganho { animation-duration: 1.15s !important; }
+  /* o botão de power: a expansão círculo→elipse foi pedida de propósito, então roda
+     mesmo com reduce ligado. Só este controle — não vale de precedente pro resto. */
+  .power { transition-duration: .22s, .22s !important; }
+  .power-toggle, .power-metade { transition-duration: .16s !important; }
+}
+
+/* Tela estreita: o calendário desiste das duas colunas antes de espremer. */
+@media (max-width: 560px) {
+  #eventos { columns: 1; }
+  #sprite { width: 192px; height: 192px; }
+  #pokemon { gap: .7rem; }
+  .meta-corpo { width: 92px; }
+  .meta-topo { height: 84px; }
+}

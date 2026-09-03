@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Second Brain — Agora</title>
+  <link rel="preload" href="/static/fontes/fredoka-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/style.css?v=15">
+</head>
+<body>
+  <main>
+    <header id="cabecalho">
+      <div class="linha-topo">
+        <div class="topo-esq">
+          <div id="power" class="power">
+            <button type="button" id="power-toggle" class="power-toggle"
+                    aria-label="Desligar ou reiniciar o app" aria-expanded="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+                <line x1="12" y1="2.8" x2="12" y2="11"></line>
+                <path d="M6.6 6.4a7.2 7.2 0 1 0 10.8 0"></path>
+              </svg>
+            </button>
+            <button type="button" class="power-metade power-reiniciar" tabindex="-1"
+                    aria-label="Reiniciar o app" title="reiniciar">↻</button>
+            <button type="button" class="power-metade power-desligar" tabindex="-1"
+                    aria-label="Desligar o app" title="desligar">⏻</button>
+          </div>
+          <span id="data"></span>
+          <button type="button" id="abrir-agenda" class="btn-agenda" hidden></button>
+          <span id="inbox-contador" class="inbox-contador" hidden></span>
+        </div>
+        <nav id="nav" data-atual="agora"></nav>
+      </div>
+      <div id="pokemon">
+        <div class="meta-pk" id="meta-reserva"></div>
+        <div id="companheiro">
+          <img id="sprite" alt="" width="288" height="288">
+          <span id="pk-nome"></span>
+          <div class="xp">
+            <div class="barra"><div id="barra-xp"></div></div>
+            <span id="pk-xp"></span>
+          </div>
+        </div>
+        <div class="meta-pk" id="meta-canada"></div>
+      </div>
+    </header>
+
+    <div id="conteudo">
+      <div id="principal">
+        <section id="captura">
+          <form id="form-captura">
+            <input id="captura-texto" placeholder="joga no inbox e esquece…"
+                   autocomplete="off" required>
+          </form>
+          <p id="captura-ok" class="captura-ok" role="status" aria-live="polite"></p>
+        </section>
+
+        <section id="agora">
+          <div class="linha-topo">
+            <h2>Bora começar</h2>
+            <p id="janela" hidden></p>
+          </div>
+          <div id="cards"></div>
+          <button id="outras">me dá outras 3</button>
+        </section>
+
+        <section id="diario">
+          <h2>Acabei de fazer</h2>
+          <form id="form-anotar">
+            <input id="anotacao" placeholder="o que você acabou de fazer?"
+                   autocomplete="off" required>
+            <div id="energias">
+              <button type="button" data-energia="leve">leve</button>
+              <button type="button" data-energia="média" class="ativa">média</button>
+              <button type="button" data-energia="pesada">pesada</button>
+            </div>
+            <button type="submit" id="anotar">anotar</button>
+          </form>
+          <ul id="anotacoes"></ul>
+        </section>
+
+        <details id="todas">
+          <summary>Todas as tarefas <span id="conta"></span></summary>
+          <button id="mostrar-add">+ add</button>
+          <form id="form-add" hidden>
+            <input id="novo-titulo" placeholder="o que precisa fazer?" required>
+            <select id="nova-energia">
+              <option value="">energia média</option>
+              <option value="leve">leve</option>
+              <option value="pesada">pesada</option>
+            </select>
+            <button type="submit">adicionar</button>
+          </form>
+          <ul id="lista"></ul>
+        </details>
+      </div>
+
+      <aside id="lateral">
+        <section id="recorrentes">
+          <h2>Recorrentes</h2>
+          <div class="grupo" data-freq="diario">
+            <h3>Diário</h3>
+            <ul></ul>
+          </div>
+          <div class="grupo" data-freq="semanal">
+            <h3>Semanal</h3>
+            <ul></ul>
+          </div>
+          <div class="grupo" data-freq="mensal">
+            <h3>Mensal</h3>
+            <ul></ul>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <dialog id="modal-agenda">
+      <div class="linha-topo">
+        <h2>Hoje</h2>
+        <button type="button" id="fechar-agenda" aria-label="fechar">✕</button>
+      </div>
+      <ul id="eventos"></ul>
+      <p id="agenda-vazia" class="vazio" hidden>nada no calendário hoje</p>
+    </dialog>
+  </main>
+  <script src="/static/nav.js?v=6"></script>
+  <script src="/static/app.js?v=14"></script>
+</body>
+</html>

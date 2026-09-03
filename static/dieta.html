@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Second Brain — Dieta</title>
+  <link rel="preload" href="/static/fontes/fredoka-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/style.css?v=7">
+</head>
+<body class="pagina-dieta">
+  <main>
+    <header id="cabecalho">
+      <div class="linha-topo">
+        <span id="fonte-dieta">dieta</span>
+        <nav id="nav" data-atual="dieta"></nav>
+      </div>
+    </header>
+
+    <section id="captura-dieta">
+      <form id="form-captura-dieta">
+        <input id="captura-dieta-texto" autocomplete="off" required
+               placeholder="comprei o nhoque, será que troco o kibe, tô com vontade de…">
+      </form>
+      <p id="captura-dieta-ok" class="captura-ok" role="status" aria-live="polite"></p>
+      <ul id="notas-dieta"></ul>
+    </section>
+
+    <div id="grade-dieta">
+      <section id="plano">
+        <h2>O dia <span id="kcal-dia" class="conta-sec"></span></h2>
+        <div id="refeicoes"></div>
+      </section>
+
+      <aside id="mercado">
+        <h2>Mercado da semana <span id="compras-conta" class="conta-sec"></span></h2>
+        <div id="compras"></div>
+      </aside>
+    </div>
+
+    <section id="corpo" hidden>
+      <h2>O corpo <span id="corpo-datas" class="conta-sec"></span></h2>
+      <div id="medidas"></div>
+      <p id="nota-corpo" hidden></p>
+    </section>
+  </main>
+  <script src="/static/nav.js?v=6"></script>
+  <script src="/static/dieta.js?v=7"></script>
+</body>
+</html>
