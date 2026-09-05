@@ -30,14 +30,20 @@ def _dir_semente() -> Path:
 
 
 def preparar_vault() -> "Vault":
-    """Resolve o caminho do vault e, na primeira execução (quando ele ainda não
-    existe), copia a semente pra lá. Devolve um `Vault` pronto pra uso."""
+    """Resolve o caminho do vault e, se ele ainda não foi semeado, copia a semente
+    pra lá. Devolve um `Vault` pronto pra uso.
+
+    O gatilho é "falta o `tarefas.md`", não "a pasta não existe": a pasta pode já
+    ter sido criada por outra coisa (um log, um marcador) sem o conteúdo — e mesmo
+    assim precisa da semente. `dirs_exist_ok` deixa mesclar sem apagar o que houver.
+    """
     destino = caminho_do_vault()
     semente = _dir_semente()
-    if (not destino.exists() and semente.exists()
+    precisa_semear = not (destino / "tarefas.md").exists()
+    if (precisa_semear and semente.exists()
             and semente.resolve() != destino.resolve()):
         shutil.copytree(
-            semente, destino,
+            semente, destino, dirs_exist_ok=True,
             ignore=shutil.ignore_patterns(
                 ".cache", "progresso.json", "estado.md", ".primeira-vez"),
         )

@@ -85,6 +85,23 @@ def test_preparar_vault_semeia_quando_nao_existe(tmp_path, monkeypatch):
     assert not (destino / "progresso.json").exists()
 
 
+def test_preparar_vault_semeia_pasta_vazia(tmp_path, monkeypatch):
+    # a pasta pode já existir (criada por um log/marcador) sem o conteúdo do vault;
+    # ainda assim precisa da semente — o gatilho é "falta tarefas.md", não "não existe"
+    destino = tmp_path / "vault"
+    destino.mkdir()
+    (destino / ".servidor.log").write_text("ruido\n", encoding="utf-8")  # não é vault
+    semente = tmp_path / "semente"
+    semente.mkdir()
+    (semente / "tarefas.md").write_text("# t\n", encoding="utf-8")
+    monkeypatch.setenv("SECOND_BRAIN_VAULT", str(destino))
+    monkeypatch.setattr(storage, "_dir_semente", lambda: semente)
+
+    storage.preparar_vault()
+    assert (destino / "tarefas.md").exists()          # semeou mesmo com a pasta existindo
+    assert (destino / ".servidor.log").exists()       # e não apagou o que já estava lá
+
+
 def test_preparar_vault_nao_sobrescreve_o_que_ja_existe(tmp_path, monkeypatch):
     destino = tmp_path / "vault"
     destino.mkdir()

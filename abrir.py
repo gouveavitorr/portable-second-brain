@@ -16,6 +16,7 @@ Empacotado (`sys.frozen`), `subir_servidor` e o reinício re-executam o **própr
 com o flag — `comando_base()` cuida disso. A porta escolhida é persistida em
 `.servidor.port` pra o reinício e o navegador acharem o mesmo endereço.
 """
+import os
 import socket
 import subprocess
 import sys
@@ -29,10 +30,12 @@ RAIZ = Path(__file__).resolve().parent
 
 def _dir_estado() -> Path:
     """Onde guardar o log e a porta: um lugar escrevível. Empacotado, o cwd do exe
-    pode ser read-only (Program Files), então cai junto do vault, por-usuário."""
+    pode ser read-only (Program Files), então vai pro `%LOCALAPPDATA%\\SecondBrain`
+    — o lugar convencional pra estado de runtime, e **fora do vault** pra não sujar
+    o `Documentos\\SecondBrain` nem pré-criá-lo antes da semeadura."""
     if getattr(sys, "frozen", False):
-        from app.storage import caminho_do_vault
-        d = caminho_do_vault()
+        base = os.environ.get("LOCALAPPDATA") or str(Path.home())
+        d = Path(base) / "SecondBrain"
         d.mkdir(parents=True, exist_ok=True)
         return d
     return RAIZ
@@ -117,11 +120,27 @@ def no_ar() -> bool:
 
 # ---- subir / servir ----
 
+def _garantir_saida() -> None:
+    """Empacotado sem console (windowed), `sys.stdout`/`stderr` são None e o uvicorn
+    morre ao tentar logar — o mesmo drama do pythonw. Aponta os dois pro log."""
+    if sys.stdout is None or sys.stderr is None:
+        f = open(LOG, "a", buffering=1, encoding="utf-8")
+        if sys.stdout is None:
+            sys.stdout = f
+        if sys.stderr is None:
+            sys.stderr = f
+
+
 def servir() -> None:
-    """O processo do servidor: uvicorn in-process, na porta persistida."""
+    """O processo do servidor: uvicorn in-process, na porta persistida.
+
+    Passa o objeto `app` direto (não a string "app.main:app"): empacotado, o
+    import-por-string do uvicorn às vezes não acha o módulo; o objeto sempre acha.
+    """
+    _garantir_saida()
     import uvicorn
-    uvicorn.run("app.main:app", host="127.0.0.1", port=porta_ativa(),
-                log_level="info")
+    from app.main import app
+    uvicorn.run(app, host="127.0.0.1", port=porta_ativa(), log_level="info")
 
 
 def subir_servidor() -> None:

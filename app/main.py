@@ -19,8 +19,18 @@ from app.dieta import so_massa
 from app.calendario import ja_passou
 from app.engine import escolher_agora, minutos_de, disponivel, dias_para_voltar
 
-_STATIC = Path(__file__).resolve().parent.parent / "static"
-_RAIZ = Path(__file__).resolve().parent.parent
+def _raiz_bundle() -> Path:
+    """A raiz de onde ler os recursos versionados (static/). Empacotado com
+    PyInstaller, os dados são extraídos pra `sys._MEIPASS`; em dev, é a pasta do
+    projeto."""
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        return Path(base)
+    return Path(__file__).resolve().parent.parent
+
+
+_RAIZ = _raiz_bundle()
+_STATIC = _RAIZ / "static"
 
 
 def _encerrar_em_breve(delay: float = 0.3) -> None:

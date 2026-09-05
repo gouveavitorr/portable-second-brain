@@ -27,8 +27,9 @@ python abrir.py
 Ele sobe o servidor e abre a tela no navegador. Pra fechar, use o botão de desligar na
 própria tela.
 
-> Uma versão empacotada (um `.exe` que você baixa e clica, sem instalar Python) está no
-> forno. Por enquanto é rodar do código como acima.
+> Dá pra empacotar tudo num único `.exe` que a pessoa baixa e clica, sem instalar Python —
+> veja [docs/empacotar.md](docs/empacotar.md). O executável roda offline e cria o vault em
+> `Documentos\SecondBrain` na primeira vez.
 
 ## Usar com o Claude (opcional)
 

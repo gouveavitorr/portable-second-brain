@@ -33,3 +33,8 @@ client_secret*.json
 **/credentials.json
 **/token.json
 **/client_secret*.json
+
+# Saídas do PyInstaller (o .exe é regenerável pelo build.bat)
+build/
+dist/
+*.spec.bak
